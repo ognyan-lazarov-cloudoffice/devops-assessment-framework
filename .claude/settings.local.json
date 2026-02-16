@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init:*)",
+      "Bash(git branch:*)",
+      "Bash(git -C /Users/ognyanlazarov/playground/devops-assessment-framework status -s)"
+    ]
+  }
+}

@@ -27,6 +27,23 @@ The plan is organized into three sequential stages, each with a clear gate condi
 
 ---
 
+## Design Note: Context Budget Management as Subagent Output Discipline
+
+The framework's execution profile is bounded and finite — one assessment, one repository (or cluster), one Evidence Package. There is no cross-assessment learning, no growing knowledge base, no feedback loop refining agent behavior over time. This eliminates the need for an explicit memory management system (no vector store, no RAG, no persistent memory layer).
+
+Session persistence (resuming an interrupted assessment) is already handled by the task registry's file-based state: subagent outputs are written to files, task completion markers track progress, `/assess-resume` picks up from the last checkpoint. This is checkpointing, not memory.
+
+The one area where working state accumulation matters is the **orchestrator's context window during cross-dimension correlation** (Stage 3, Task 3.2). Each dimension subagent runs in its own context window — by design. But when all four complete, the orchestrator must hold the substance of all four reports simultaneously to detect cross-dimension tensions. With Anthropic's 200K context this is trivial. With a local model's effective 32–64K context, four detailed evidence reports plus the tension catalog plus the orchestrator's own instructions can exceed the usable context budget.
+
+The solution is not an infrastructure component but a **design discipline in the subagent output contract**: each subagent produces output at two levels of granularity.
+
+- **Detailed evidence report** — written to file, contains all findings with file paths, line references, tool outputs, classification signals. Goes into the Evidence Package as-is. The orchestrator does not need this in context.
+- **Correlation summary** — a compact structured abstract (target: 500–1000 tokens per dimension) containing only: the preliminary classification, the 3–5 highest-signal evidence items, and any flagged uncertainties. This is what the orchestrator loads into its context window for cross-dimension work.
+
+The orchestrator then operates on ~2000–4000 tokens of summarized dimension state plus the tension catalog — well within even a 32K context budget — while the full evidence lives safely in files. This is the same **file-as-memory with selective context loading** principle that the existing reference file architecture already uses (load only the relevant reference file per task, not the entire framework), extended to subagent outputs.
+
+---
+
 ## Stage 1 — Infrastructure Plumbing
 
 **Purpose:** Establish a working execution environment where Claude Code communicates with a local LLM via Ollama, and subagent invocation functions correctly through the local endpoint.
@@ -54,7 +71,7 @@ Provision a GPU-equipped VM on Google Compute Engine suitable for serving a 13B�
 3. Install Docker with NVIDIA Container Toolkit (`nvidia-docker`).
 
 **Exit criteria:**  
-`nvidia-smi` shows the L4 GPU, Docker can run `--gpus all` containers.
+`nvidia-smi` shows the A100 GPU, Docker can run `--gpus all` containers.
 
 ---
 
@@ -213,11 +230,16 @@ Create the D4 Lifecycle Compliance subagent as a `.claude/agents/d4-lifecycle.md
    - **System prompt** incorporating D4-specific assessment criteria (startup time indicators, SIGTERM handling, configuration model, health endpoints).
    - **Tool restrictions** limited to: Bash, Read (and optionally Write for evidence output).
    - **Explicit output contract** specifying the expected structured format for the per-dimension evidence report.
-2. The output contract should include (at minimum):
-   - Classification signals detected (with file paths and line references).
-   - Tool outputs (Hadolint JSON, Semgrep matches).
-   - Preliminary classification suggestion with confidence level.
-   - Explicit unknowns (signals that could not be determined from static analysis alone).
+2. The output contract must specify **two tiers of output** (see Design Note: Context Budget Management):
+   - **Detailed evidence report** (written to file) including:
+     - Classification signals detected (with file paths and line references).
+     - Tool outputs (Hadolint JSON, Semgrep matches).
+     - Preliminary classification suggestion with confidence level.
+     - Explicit unknowns (signals that could not be determined from static analysis alone).
+   - **Correlation summary** (returned to orchestrator, target 500–1000 tokens) including:
+     - Preliminary classification (e.g., L2).
+     - Top 3–5 highest-signal evidence items (abstracted, no raw code).
+     - Flagged uncertainties relevant to cross-dimension tension detection.
 3. The subagent must load only D4-relevant reference material — not the full framework. This validates the context isolation principle.
 
 **Exit criteria:**  
@@ -263,11 +285,12 @@ Run the D4 subagent against the selected repository with the orchestrator (main 
 | **Classification coherence** | Does the preliminary classification align with the evidence presented? |
 | **Unknown identification** | Are genuinely unresolvable questions flagged (not hallucinated)? |
 | **No source code leakage** | Does the output contain raw source code, or only structured abstractions? |
+| **Correlation summary adequacy** | Does the correlation summary capture enough signal for cross-dimension tension detection without requiring the full report? (See Design Note: Context Budget Management) |
 
 5. If the output is deficient, iterate: adjust the subagent system prompt, output contract, or tool invocation patterns. Record what needed adjustment and why.
 
 **Exit criteria:**  
-The D4 subagent produces an evidence report that scores satisfactory (usable without major rework) on at least 5 of the 6 quality dimensions above. The "no source code leakage" dimension must pass unconditionally.
+The D4 subagent produces an evidence report that scores satisfactory (usable without major rework) on at least 6 of the 7 quality dimensions above. The "no source code leakage" dimension must pass unconditionally.
 
 ---
 
@@ -351,10 +374,12 @@ Implement the main agent orchestration logic that sequences subagent invocations
    T1.D3 D3 Subagent (with Tooling Manifest + Repo Map) → D3 Evidence Report
    T1.D4 D4 Subagent (with Tooling Manifest + Repo Map) → D4 Evidence Report
    ```
-2. The orchestrator performs cross-dimension correlation after all subagents complete:
+2. The orchestrator performs cross-dimension correlation after all subagents complete. Per the Design Note on Context Budget Management, the orchestrator loads **correlation summaries** (not full evidence reports) into its context window for this step:
+   - Load the four correlation summaries (~2000–4000 tokens total) plus the cross-dimension tension catalog.
    - D1–D3 consistency check (deployment topology vs. independence profile).
    - D2–D4 consistency check (state model vs. lifecycle compliance).
    - Flag contradictions for the Dialogue Agenda.
+   - If a tension requires deeper inspection, the orchestrator reads the specific section of the relevant detailed report from file — targeted retrieval, not bulk loading.
 3. The orchestrator assembles the Evidence Package from subagent outputs.
 4. Implement the evidence validation scan: automated check confirming no raw source code in the assembled Evidence Package.
 5. If Tier 2 preliminary signals were detected during subagent execution (C1 infrastructure indicators from K8s manifests, C2 compliance indicators from security configurations), incorporate them into a Tier 2 Preliminary section.

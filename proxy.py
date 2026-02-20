@@ -55,13 +55,87 @@ def extract_text(content) -> str:
     return ""
 
 
+def to_openai_tools(tools: list) -> list:
+    """Convert Anthropic tool definitions to OpenAI/Ollama format."""
+    result = []
+    for tool in tools:
+        result.append({
+            "type": "function",
+            "function": {
+                "name": tool["name"],
+                "description": tool.get("description", ""),
+                "parameters": tool.get("input_schema", {"type": "object", "properties": {}}),
+            },
+        })
+    return result
+
+
 def to_openai_messages(body: dict) -> list:
-    """Convert Anthropic messages payload to OpenAI/Ollama messages list."""
+    """Convert Anthropic messages payload to OpenAI/Ollama messages list.
+
+    Handles:
+      - Plain text content (string or text blocks)
+      - tool_use blocks in assistant messages → OpenAI tool_calls
+      - tool_result blocks in user messages  → OpenAI role=tool messages
+    """
     messages = []
     if "system" in body:
         messages.append({"role": "system", "content": extract_text(body["system"])})
+
     for msg in body.get("messages", []):
-        messages.append({"role": msg["role"], "content": extract_text(msg["content"])})
+        role = msg["role"]
+        content = msg["content"]
+
+        # ── string content ────────────────────────────────────────────────────
+        if isinstance(content, str):
+            messages.append({"role": role, "content": content})
+            continue
+
+        # ── list content ──────────────────────────────────────────────────────
+        if not isinstance(content, list):
+            continue
+
+        # tool_result blocks → role=tool messages (one per result)
+        tool_results = [b for b in content if b.get("type") == "tool_result"]
+        if tool_results:
+            for tr in tool_results:
+                tr_content = tr.get("content", "")
+                if isinstance(tr_content, list):
+                    tr_content = extract_text(tr_content)
+                elif not isinstance(tr_content, str):
+                    tr_content = str(tr_content)
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tr["tool_use_id"],
+                    "content": tr_content,
+                })
+            continue
+
+        # tool_use blocks → assistant message with tool_calls
+        tool_uses = [b for b in content if b.get("type") == "tool_use"]
+        if tool_uses:
+            text_blocks = [b for b in content if b.get("type") == "text"]
+            text_content = "".join(b.get("text", "") for b in text_blocks) or None
+            tool_calls = []
+            for tu in tool_uses:
+                tool_calls.append({
+                    "id": tu["id"],
+                    "type": "function",
+                    "function": {
+                        "name": tu["name"],
+                        "arguments": json.dumps(tu.get("input", {})),
+                    },
+                })
+            messages.append({
+                "role": "assistant",
+                "content": text_content,
+                "tool_calls": tool_calls,
+            })
+            continue
+
+        # plain text blocks
+        messages.append({"role": role, "content": extract_text(content)})
+
     return messages
 
 
@@ -104,6 +178,8 @@ async def route_ollama(body: dict):
     messages = to_openai_messages(body)
     max_tokens = body.get("max_tokens", 4096)
     stream = body.get("stream", False)
+    tools = body.get("tools")
+    extra = {"tools": to_openai_tools(tools)} if tools else {}
 
     if stream:
 
@@ -112,55 +188,128 @@ async def route_ollama(body: dict):
                 "event: message_start\n"
                 f"data: {json.dumps({'type': 'message_start', 'message': {'id': 'msg_ollama', 'type': 'message', 'role': 'assistant', 'content': [], 'model': model, 'stop_reason': None, 'usage': {'input_tokens': 0, 'output_tokens': 0}}})}\n\n"
             )
-            yield (
-                "event: content_block_start\n"
-                f"data: {json.dumps({'type': 'content_block_start', 'index': 0, 'content_block': {'type': 'text', 'text': ''}})}\n\n"
-            )
             yield 'event: ping\ndata: {"type":"ping"}\n\n'
 
             out_tokens = 0
+            block_index = -1
+            text_started = False
+            # tc_index → {block_index, id, name}
+            tool_blocks: dict = {}
+            finish_reason = None
+
             ollama_stream = await ollama.chat.completions.create(
-                model=model, messages=messages, max_tokens=max_tokens, stream=True
+                model=model, messages=messages, max_tokens=max_tokens, stream=True,
+                **extra
             )
+
             async for chunk in ollama_stream:
-                text = chunk.choices[0].delta.content or ""
-                if text:
+                if not chunk.choices:
+                    continue
+                choice = chunk.choices[0]
+                delta = choice.delta
+                if choice.finish_reason:
+                    finish_reason = choice.finish_reason
+
+                # ── text content ──────────────────────────────────────────────
+                if delta.content:
+                    if not text_started:
+                        block_index += 1
+                        text_started = True
+                        yield (
+                            "event: content_block_start\n"
+                            f"data: {json.dumps({'type': 'content_block_start', 'index': block_index, 'content_block': {'type': 'text', 'text': ''}})}\n\n"
+                        )
                     out_tokens += 1
                     yield (
                         "event: content_block_delta\n"
-                        f"data: {json.dumps({'type': 'content_block_delta', 'index': 0, 'delta': {'type': 'text_delta', 'text': text}})}\n\n"
+                        f"data: {json.dumps({'type': 'content_block_delta', 'index': block_index, 'delta': {'type': 'text_delta', 'text': delta.content}})}\n\n"
                     )
 
-            yield f"event: content_block_stop\ndata: {json.dumps({'type': 'content_block_stop', 'index': 0})}\n\n"
+                # ── tool call deltas ──────────────────────────────────────────
+                if delta.tool_calls:
+                    for tc in delta.tool_calls:
+                        tc_idx = tc.index
+
+                        if tc_idx not in tool_blocks:
+                            # Close text block if open
+                            if text_started:
+                                yield f"event: content_block_stop\ndata: {json.dumps({'type': 'content_block_stop', 'index': block_index})}\n\n"
+                                text_started = False
+                            block_index += 1
+                            tc_id = tc.id or f"toolu_{tc_idx}"
+                            tc_name = (tc.function.name if tc.function else "") or ""
+                            tool_blocks[tc_idx] = {
+                                "block_index": block_index,
+                                "id": tc_id,
+                                "name": tc_name,
+                            }
+                            yield (
+                                "event: content_block_start\n"
+                                f"data: {json.dumps({'type': 'content_block_start', 'index': block_index, 'content_block': {'type': 'tool_use', 'id': tc_id, 'name': tc_name, 'input': {}}})}\n\n"
+                            )
+
+                        if tc.function and tc.function.arguments:
+                            bi = tool_blocks[tc_idx]["block_index"]
+                            yield (
+                                "event: content_block_delta\n"
+                                f"data: {json.dumps({'type': 'content_block_delta', 'index': bi, 'delta': {'type': 'input_json_delta', 'partial_json': tc.function.arguments}})}\n\n"
+                            )
+
+            # ── close open blocks ─────────────────────────────────────────────
+            if text_started:
+                yield f"event: content_block_stop\ndata: {json.dumps({'type': 'content_block_stop', 'index': block_index})}\n\n"
+            for tb in sorted(tool_blocks.keys()):
+                yield f"event: content_block_stop\ndata: {json.dumps({'type': 'content_block_stop', 'index': tool_blocks[tb]['block_index']})}\n\n"
+
+            stop_reason = "tool_use" if finish_reason == "tool_calls" else "end_turn"
             yield (
                 "event: message_delta\n"
-                f"data: {json.dumps({'type': 'message_delta', 'delta': {'stop_reason': 'end_turn', 'stop_sequence': None}, 'usage': {'output_tokens': out_tokens}})}\n\n"
+                f"data: {json.dumps({'type': 'message_delta', 'delta': {'stop_reason': stop_reason, 'stop_sequence': None}, 'usage': {'output_tokens': out_tokens}})}\n\n"
             )
             yield 'event: message_stop\ndata: {"type":"message_stop"}\n\n'
 
         return StreamingResponse(sse(), media_type="text/event-stream")
 
-    # Non-streaming
+    # ── non-streaming ─────────────────────────────────────────────────────────
     resp = await ollama.chat.completions.create(
-        model=model, messages=messages, max_tokens=max_tokens
+        model=model, messages=messages, max_tokens=max_tokens, **extra
     )
-    text = resp.choices[0].message.content or ""
+    msg = resp.choices[0].message
+
+    if msg.tool_calls:
+        content = []
+        if msg.content:
+            content.append({"type": "text", "text": msg.content})
+        for tc in msg.tool_calls:
+            try:
+                tc_input = json.loads(tc.function.arguments)
+            except (json.JSONDecodeError, TypeError):
+                tc_input = {}
+            content.append({
+                "type": "tool_use",
+                "id": tc.id,
+                "name": tc.function.name,
+                "input": tc_input,
+            })
+        stop_reason = "tool_use"
+    else:
+        content = [{"type": "text", "text": msg.content or ""}]
+        stop_reason = "end_turn"
+
     return Response(
-        content=json.dumps(
-            {
-                "id": "msg_ollama",
-                "type": "message",
-                "role": "assistant",
-                "content": [{"type": "text", "text": text}],
-                "model": model,
-                "stop_reason": "end_turn",
-                "stop_sequence": None,
-                "usage": {
-                    "input_tokens": resp.usage.prompt_tokens if resp.usage else 0,
-                    "output_tokens": resp.usage.completion_tokens if resp.usage else 0,
-                },
-            }
-        ),
+        content=json.dumps({
+            "id": "msg_ollama",
+            "type": "message",
+            "role": "assistant",
+            "content": content,
+            "model": model,
+            "stop_reason": stop_reason,
+            "stop_sequence": None,
+            "usage": {
+                "input_tokens": resp.usage.prompt_tokens if resp.usage else 0,
+                "output_tokens": resp.usage.completion_tokens if resp.usage else 0,
+            },
+        }),
         media_type="application/json",
     )
 

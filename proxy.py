@@ -16,11 +16,12 @@ Then start Claude Code with:
 
 import json
 import logging
+
 import httpx
+import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import StreamingResponse
 from openai import AsyncOpenAI
-import uvicorn
 
 log = logging.getLogger("proxy")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -28,7 +29,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 app = FastAPI()
 
 ANTHROPIC_API = "https://api.anthropic.com"
-OLLAMA_BASE   = "http://localhost:11434/v1"
+OLLAMA_BASE = "http://localhost:11434/v1"
 
 SKIP_HEADERS = {"host", "content-length", "transfer-encoding", "connection"}
 
@@ -37,10 +38,11 @@ OLLAMA_MODELS = {
     "qwen3-coder:30b-a3b-q8_0",
 }
 
-ollama = AsyncOpenAI(base_url=OLLAMA_BASE, api_key="ollama")
+ollama = AsyncOpenAI(base_url=OLLAMA_BASE, api_key="ollama", timeout=600.0)
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+
 
 def extract_text(content) -> str:
     """Normalize Anthropic content (plain string or content-block list) to str."""
@@ -65,8 +67,11 @@ def to_openai_messages(body: dict) -> list:
 
 # ── Anthropic passthrough ─────────────────────────────────────────────────────
 
+
 async def passthrough(request: Request, path: str, body_bytes: bytes):
-    headers = {k: v for k, v in request.headers.items() if k.lower() not in SKIP_HEADERS}
+    headers = {
+        k: v for k, v in request.headers.items() if k.lower() not in SKIP_HEADERS
+    }
     async with httpx.AsyncClient(timeout=600.0) as client:
         resp = await client.request(
             method=request.method,
@@ -75,7 +80,8 @@ async def passthrough(request: Request, path: str, body_bytes: bytes):
             headers=headers,
         )
     resp_headers = {
-        k: v for k, v in resp.headers.items()
+        k: v
+        for k, v in resp.headers.items()
         if k.lower() not in {"content-length", "transfer-encoding"}
     }
     if "text/event-stream" in resp.headers.get("content-type", ""):
@@ -85,26 +91,30 @@ async def passthrough(request: Request, path: str, body_bytes: bytes):
             headers=resp_headers,
             media_type="text/event-stream",
         )
-    return Response(content=resp.content, status_code=resp.status_code, headers=resp_headers)
+    return Response(
+        content=resp.content, status_code=resp.status_code, headers=resp_headers
+    )
 
 
 # ── Ollama routing ────────────────────────────────────────────────────────────
 
+
 async def route_ollama(body: dict):
-    model      = body["model"]
-    messages   = to_openai_messages(body)
+    model = body["model"]
+    messages = to_openai_messages(body)
     max_tokens = body.get("max_tokens", 4096)
-    stream     = body.get("stream", False)
+    stream = body.get("stream", False)
 
     if stream:
+
         async def sse():
             yield (
                 "event: message_start\n"
-                f"data: {json.dumps({'type':'message_start','message':{'id':'msg_ollama','type':'message','role':'assistant','content':[],'model':model,'stop_reason':None,'usage':{'input_tokens':0,'output_tokens':0}}})}\n\n"
+                f"data: {json.dumps({'type': 'message_start', 'message': {'id': 'msg_ollama', 'type': 'message', 'role': 'assistant', 'content': [], 'model': model, 'stop_reason': None, 'usage': {'input_tokens': 0, 'output_tokens': 0}}})}\n\n"
             )
             yield (
                 "event: content_block_start\n"
-                f"data: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
+                f"data: {json.dumps({'type': 'content_block_start', 'index': 0, 'content_block': {'type': 'text', 'text': ''}})}\n\n"
             )
             yield 'event: ping\ndata: {"type":"ping"}\n\n'
 
@@ -118,13 +128,13 @@ async def route_ollama(body: dict):
                     out_tokens += 1
                     yield (
                         "event: content_block_delta\n"
-                        f"data: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':text}})}\n\n"
+                        f"data: {json.dumps({'type': 'content_block_delta', 'index': 0, 'delta': {'type': 'text_delta', 'text': text}})}\n\n"
                     )
 
-            yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
+            yield f"event: content_block_stop\ndata: {json.dumps({'type': 'content_block_stop', 'index': 0})}\n\n"
             yield (
                 "event: message_delta\n"
-                f"data: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':out_tokens}})}\n\n"
+                f"data: {json.dumps({'type': 'message_delta', 'delta': {'stop_reason': 'end_turn', 'stop_sequence': None}, 'usage': {'output_tokens': out_tokens}})}\n\n"
             )
             yield 'event: message_stop\ndata: {"type":"message_stop"}\n\n'
 
@@ -136,19 +146,21 @@ async def route_ollama(body: dict):
     )
     text = resp.choices[0].message.content or ""
     return Response(
-        content=json.dumps({
-            "id": "msg_ollama",
-            "type": "message",
-            "role": "assistant",
-            "content": [{"type": "text", "text": text}],
-            "model": model,
-            "stop_reason": "end_turn",
-            "stop_sequence": None,
-            "usage": {
-                "input_tokens":  resp.usage.prompt_tokens     if resp.usage else 0,
-                "output_tokens": resp.usage.completion_tokens if resp.usage else 0,
-            },
-        }),
+        content=json.dumps(
+            {
+                "id": "msg_ollama",
+                "type": "message",
+                "role": "assistant",
+                "content": [{"type": "text", "text": text}],
+                "model": model,
+                "stop_reason": "end_turn",
+                "stop_sequence": None,
+                "usage": {
+                    "input_tokens": resp.usage.prompt_tokens if resp.usage else 0,
+                    "output_tokens": resp.usage.completion_tokens if resp.usage else 0,
+                },
+            }
+        ),
         media_type="application/json",
     )
 
@@ -156,6 +168,7 @@ async def route_ollama(body: dict):
 # ── model state ──────────────────────────────────────────────────────────────
 
 _MODEL_STATE_FILE = "/tmp/cc-proxy-model"
+
 
 def _write_model_state(model: str) -> None:
     """Write the last routed model to a temp file for the status line to read."""
@@ -167,6 +180,7 @@ def _write_model_state(model: str) -> None:
 
 
 # ── router ────────────────────────────────────────────────────────────────────
+
 
 @app.api_route("/v1/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def route(request: Request, path: str):

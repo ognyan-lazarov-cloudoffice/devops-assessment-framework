@@ -47,7 +47,7 @@ grep -rl "Xorg\|DISPLAY=\|xvfb\|xserver" REPO 2>/dev/null | grep -v ".git"
 ```
 grep -rn "initialDelaySeconds" REPO --include="*.yaml" --include="*.yml" 2>/dev/null
 grep -rn "HEALTHCHECK.*--start-period" REPO --include="Dockerfile*" 2>/dev/null
-grep -rl "migrate\|flyway\|liquibase\|alembic\|goose\|dbmate" REPO --include="*.go" --include="*.py" --include="*.java" --include="*.js" --include="*.ts" 2>/dev/null | grep -v ".git" | grep -v "_test\."
+grep -rl "flyway\|liquibase\|alembic\|goose\|dbmate" REPO --include="*.go" --include="*.py" --include="*.java" --include="*.js" --include="*.ts" 2>/dev/null | grep -v ".git" | grep -v "_test\."
 grep -rl "warm.*cache\|preload\|prefetch\|WarmUp\|warmup" REPO 2>/dev/null | grep -v ".git" | grep -v "_test\."
 ```
 
@@ -97,6 +97,26 @@ Read each Dockerfile found. Record:
 - STOPSIGNAL presence
 - Whether config is baked at build time (ARG used for runtime config)
 - HEALTHCHECK configuration
+
+---
+
+### Step 6b — Static Analysis Tool Execution
+
+You were given a tooling manifest in your task instructions. For each tool listed as INSTALLED in the manifest:
+
+- **hadolint**: Run against every Dockerfile found in Step 6.
+  ```
+  hadolint DOCKERFILE_PATH
+  ```
+  Record every warning and error. Note rule IDs (e.g. DL3008, SC2086).
+
+- **semgrep**: Run against the repository source files.
+  ```
+  semgrep --config=auto REPO --include="*.go" --include="*.py" --include="*.java" --include="*.js" --include="*.ts" --no-git-ignore 2>/dev/null | head -60
+  ```
+  Record findings relevant to lifecycle: signal handling, hardcoded config, health endpoint patterns.
+
+If a tool is NOT_APPLICABLE or INSTALL_FAILED, skip it and note so in the report.
 
 ---
 
@@ -151,7 +171,7 @@ CRITICAL: Do NOT include raw source code in the report. Reference file paths and
 
 ### Tier 2 — Correlation Summary (return to orchestrator)
 
-After writing the report file, return ONLY this structured summary (500-1000 tokens):
+After writing the report file, return EXACTLY the following structure — field by field, in this order, with no paraphrasing, no omissions, and no additional prose before or after:
 
 ```
 ## D4 Correlation Summary

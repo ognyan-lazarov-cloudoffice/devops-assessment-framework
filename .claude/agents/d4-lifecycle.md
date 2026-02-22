@@ -1,6 +1,6 @@
 ---
 name: d4-lifecycle
-description: D4 Lifecycle Compliance subagent — assesses startup behavior, SIGTERM handling, configuration externalization, and health signaling against the D4 framework dimension. Produces a two-tier output: detailed evidence report written to file + correlation summary returned to orchestrator.
+description: "D4 Lifecycle Compliance subagent — assesses startup behavior, SIGTERM handling, configuration externalization, and health signaling against the D4 framework dimension. Produces a two-tier output: detailed evidence report written to file + correlation summary returned to orchestrator."
 model: qwen3-coder:30b-a3b-q8_0
 tools:
   - Bash

@@ -62,13 +62,13 @@ Based on results, determine applicability for each tool.
 For each APPLICABLE tool, check if it is already installed:
 
 ```bash
-semgrep --version 2>/dev/null && echo "AVAILABLE" || echo "NOT_INSTALLED"
-hadolint --version 2>/dev/null && echo "AVAILABLE" || echo "NOT_INSTALLED"
-trivy --version 2>/dev/null && echo "AVAILABLE" || echo "NOT_INSTALLED"
+semgrep --version 2>/dev/null && echo "INSTALLED" || echo "NOT_INSTALLED"
+hadolint --version 2>/dev/null && echo "INSTALLED" || echo "NOT_INSTALLED"
+trivy --version 2>/dev/null && echo "INSTALLED" || echo "NOT_INSTALLED"
 # Language-specific:
-go version 2>/dev/null && echo "GO_AVAILABLE" || echo "GO_NOT_FOUND"
-pydeps --version 2>/dev/null && echo "AVAILABLE" || echo "NOT_INSTALLED"
-depcruise --version 2>/dev/null && echo "AVAILABLE" || echo "NOT_INSTALLED"
+go version 2>/dev/null && echo "INSTALLED" || echo "NOT_INSTALLED"
+pydeps --version 2>/dev/null && echo "INSTALLED" || echo "NOT_INSTALLED"
+depcruise --version 2>/dev/null && echo "INSTALLED" || echo "NOT_INSTALLED"
 ```
 
 ### Step 3 — Install Missing Tools (only if consent = TRUE)
@@ -113,10 +113,10 @@ Return ONLY the following structured manifest (no preamble, no explanation):
 
 | Tool | Applicable | Status | Notes |
 |------|-----------|--------|-------|
-| Semgrep | YES | [AVAILABLE / INSTALLED / INSTALL_FAILED / SKIPPED_BY_USER] | [version or failure reason] |
-| Hadolint | [YES/NO] | [status or NOT_APPLICABLE] | [version or reason] |
-| Trivy | [YES/NO] | [status or NOT_APPLICABLE] | [version or reason] |
-| [dep tool name] | [YES/NO] | [status or NOT_APPLICABLE] | [version or reason] |
+| Semgrep | YES | [INSTALLED / INSTALL_FAILED / SKIPPED_BY_USER / NOT_APPLICABLE] | [version or failure reason] |
+| Hadolint | [YES/NO] | [INSTALLED / INSTALL_FAILED / SKIPPED_BY_USER / NOT_APPLICABLE] | [version or reason] |
+| Trivy | [YES/NO] | [INSTALLED / INSTALL_FAILED / SKIPPED_BY_USER / NOT_APPLICABLE] | [version or reason] |
+| [dep tool name] | [YES/NO] | [INSTALLED / INSTALL_FAILED / SKIPPED_BY_USER / NOT_APPLICABLE] | [version or reason] |
 
 **Overall coverage level:** [FULL / DEGRADED / MINIMAL]
 **Degradation notes:** [specific gaps if any tools are missing, or NONE]

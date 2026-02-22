@@ -102,7 +102,7 @@ Read each Dockerfile found. Record:
 
 ### Step 6b — Static Analysis Tool Execution
 
-You were given a tooling manifest in your task instructions. For each tool listed as INSTALLED in the manifest:
+Your task instructions contain a line starting with "Installed tools:". For each tool named on that line:
 
 - **hadolint**: Run against every Dockerfile found in Step 6.
   ```

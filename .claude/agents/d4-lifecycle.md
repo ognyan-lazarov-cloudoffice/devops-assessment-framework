@@ -100,29 +100,9 @@ Read each Dockerfile found. Record:
 
 ---
 
-### Step 6b — Static Analysis Tool Execution
+## Output Contract — Tier 1 (execute NOW, before Step 6b)
 
-Your task instructions contain a line starting with "Installed tools:". For each tool named on that line:
-
-- **hadolint**: Run against every Dockerfile found in Step 6.
-  ```
-  hadolint DOCKERFILE_PATH
-  ```
-  Record every warning and error. Note rule IDs (e.g. DL3008, SC2086).
-
-- **semgrep**: Run against the repository source files.
-  ```
-  semgrep --config=auto REPO --include="*.go" --include="*.py" --include="*.java" --include="*.js" --include="*.ts" --no-git-ignore 2>/dev/null | head -60
-  ```
-  Record findings relevant to lifecycle: signal handling, hardcoded config, health endpoint patterns.
-
-If a tool is NOT_APPLICABLE or INSTALL_FAILED, skip it and note so in the report.
-
----
-
-## Output Contract
-
-### Tier 1 — Detailed Evidence Report
+MANDATORY: Use the Write tool to create the evidence report NOW — before proceeding to Step 6b. Do not describe this action in text. Call the Write tool. The report must exist on disk before Step 6b begins.
 
 Write a structured markdown file to:
 `/home/ext_ognyan_lazarov_cloudoffice_b/repos/devops-assessment-framework/output/d4-evidence-report.md`
@@ -169,9 +149,31 @@ Structure:
 
 CRITICAL: Do NOT include raw source code in the report. Reference file paths and line numbers. Describe patterns abstractly.
 
-### Tier 2 — Correlation Summary (return to orchestrator)
+---
 
-After writing the report file, return EXACTLY the following structure — field by field, in this order, with no paraphrasing, no omissions, and no additional prose before or after:
+### Step 6b — Static Analysis Tool Execution (best-effort, after Write)
+
+Your task instructions contain a line starting with "Installed tools:". For each tool named on that line:
+
+- **hadolint**: Run against every Dockerfile found in Step 6.
+  ```
+  hadolint DOCKERFILE_PATH
+  ```
+  Record every warning and error. Note rule IDs (e.g. DL3008, SC2086).
+
+- **semgrep**: Run against the repository source files.
+  ```
+  semgrep --config=auto REPO --include="*.go" --include="*.py" --include="*.java" --include="*.js" --include="*.ts" --no-git-ignore 2>/dev/null | head -60
+  ```
+  Record findings relevant to lifecycle: signal handling, hardcoded config, health endpoint patterns.
+
+If a tool is NOT_APPLICABLE or INSTALL_FAILED, skip it. Step 6b is best-effort — if budget is exhausted, proceed to Tier 2.
+
+---
+
+## Output Contract — Tier 2 (return to orchestrator)
+
+Return EXACTLY the following structure — field by field, in this order, with no paraphrasing, no omissions, and no additional prose before or after:
 
 ```
 ## D4 Correlation Summary

@@ -150,7 +150,9 @@ Structure:
 **Date:** [date]
 
 ## I4 Disqualifier Check
-[CLEAR or FOUND — list each indicator checked and result]
+[CLEAR — no indicators found
+ OR INDICATORS FOUND — not disqualifying: [describe what was found and why it does not confirm I4 — e.g., localhost defaults for observability sidecars, distributed locks scoped to optional KV providers]
+ OR FOUND — DISQUALIFYING: [describe confirmed indicator — classification IS I4]]
 
 ## Resilience Pattern Detection
 [Circuit breakers: present/absent, library names. Retry config: present/absent. Timeout config: present/absent. Bulkhead patterns.]
@@ -216,7 +218,7 @@ Return EXACTLY the following structure — field by field, in this order, with n
 **Preliminary Classification:** I[X] — [Name] (score: [0/2/3])
 **Confidence:** [HIGH/MEDIUM/LOW] — [one-line rationale]
 
-**I4 Disqualifiers:** [CLEAR / FOUND: item]
+**I4 Disqualifiers:** [CLEAR / INDICATORS FOUND — not disqualifying: item / FOUND — DISQUALIFYING: item]
 
 **Top Evidence Items:**
 1. [Signal] | [file:line or directory] | [I1/I2/I3/I4 indicator]

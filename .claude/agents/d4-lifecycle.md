@@ -34,11 +34,18 @@ Replace REPO with the repository path provided in your task instructions.
 If any disqualifier is found, the classification is L4. Record findings and note whether they are core requirements or potentially removable misconfigurations.
 
 ```
-find REPO -name "*.service" -o -name "*.socket" 2>/dev/null | grep -v ".git"
+find REPO -name "*.service" -o -name "*.socket" 2>/dev/null | grep -v ".git" | grep -Ev "/(contrib|scripts|packaging|examples|example|init\.d|sample|dist|docs)/"
 grep -rl "privileged: true\|hostNetwork: true\|hostPID: true\|hostIPC: true" REPO --include="*.yaml" --include="*.yml" 2>/dev/null
 grep -rl "supervisord\|s6-overlay\|runit\|openrc" REPO 2>/dev/null | grep -v ".git"
 grep -rl "Xorg\|DISPLAY=\|xvfb\|xserver" REPO 2>/dev/null | grep -v ".git"
 ```
+
+**IMPORTANT — packaging artifact disambiguation:** If a `.service` or `.socket` file is found, verify it is a runtime requirement before classifying L4. Run:
+```
+# Check if the service file is referenced in any Dockerfile (would indicate it's copied into the image)
+grep -r "$(basename SERVICE_FILE_PATH)" REPO --include="Dockerfile*" 2>/dev/null | grep -v ".git"
+```
+If the file is NOT referenced in any Dockerfile and lives under a path containing `contrib`, `scripts`, `packaging`, `examples`, `dist`, or `docs`, classify it as a **packaging artifact** (not an L4 disqualifier) and note it as such in the report. Only files that are actively used at container runtime (referenced in Dockerfile, startup scripts, or entrypoint) constitute a genuine L4 disqualifier.
 
 ---
 
@@ -114,7 +121,9 @@ Structure:
 **Date:** [date]
 
 ## L4 Disqualifier Check
-[CLEAR or FOUND — list each check and result]
+[CLEAR — no indicators found
+ OR INDICATORS FOUND — not disqualifying: [describe what was found and why it does not confirm L4 — e.g., packaging artifact .service file not referenced in Dockerfile]
+ OR FOUND — DISQUALIFYING: [describe confirmed indicator — classification IS L4]]
 
 ## Startup Time Assessment
 [Evidence found: file references and what they indicate. Risk level: LOW/MEDIUM/HIGH]
@@ -181,7 +190,7 @@ Return EXACTLY the following structure — field by field, in this order, with n
 **Preliminary Classification:** L[X] — [Name] (score: [0-3])
 **Confidence:** [HIGH/MEDIUM/LOW] — [one-line rationale]
 
-**L4 Disqualifiers:** [CLEAR / FOUND: item]
+**L4 Disqualifiers:** [CLEAR / INDICATORS FOUND — not disqualifying: item / FOUND — DISQUALIFYING: item]
 
 **Top Evidence Items:**
 1. [Signal] | [file:line or directory] | [L1/L2/L3/L4 indicator]

@@ -49,13 +49,11 @@ Also extract from D2 report:
 
 ### Step 3 — Determine Disqualifier Status
 
-For each report, check whether the disqualifier check section reads CLEAR or FOUND:
-- D1: T4 Disqualifier Check
-- D2: S4 Disqualifier Check
-- D3: I4 Disqualifier Check
-- D4: L4 Disqualifier Check
+For each report, read the Preliminary Classification section and check the Score:
+- Score = 0 → disqualifier is ACTIVE (classification is T4/S4/I4/L4). Record as FOUND — DISQUALIFYING.
+- Score > 0 → disqualifier is NOT active, regardless of what the disqualifier check section says. Record as CLEAR or INDICATORS FOUND — not disqualifying.
 
-Record: CLEAR, FOUND, or state the finding.
+Do NOT use the "Disqualifier Check" section heading alone to determine active disqualifiers — that section records what was searched, not the final classification. Only the Score field determines whether a disqualifier is active.
 
 ### Step 4 — Extract Cross-Dimension Flags from summaries
 
@@ -200,9 +198,9 @@ Single repository scope. No boundary confirmation required.
 | D4 Lifecycle Compliance | [L?] — [name] | [0/2/3] | [HIGH/MEDIUM/LOW] |
 
 **Preliminary Total:** [sum of four scores] / 12
-**Disqualifiers Active:** [list any FOUND disqualifiers, or NONE]
+**Disqualifiers Active:** [list dimensions where Score = 0 (T4/S4/I4/L4 classification confirmed), or NONE]
 **S3 Cap Active:** [YES or NO]
-**Indicative Fitness:** [if any FOUND disqualifier → BLOCKED; else if any score=1 → MEDIUM cap; else estimate HIGH/MEDIUM/LOW from total]
+**Indicative Fitness:** [if any score=0 → BLOCKED; else if any score=1 → MEDIUM cap; else estimate HIGH/MEDIUM/LOW from total]
 
 ---
 

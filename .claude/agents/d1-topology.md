@@ -156,7 +156,9 @@ Structure:
 **Date:** [date]
 
 ## T4 Disqualifier Check
-[CLEAR or FOUND — list each indicator checked and result]
+[CLEAR — no indicators found
+ OR INDICATORS FOUND — not disqualifying: [describe what was found and why it does not confirm T4]
+ OR FOUND — DISQUALIFYING: [describe confirmed indicator — classification IS T4]]
 
 ## Dockerfile Topology
 [Count, locations, directory structure. Whether multiple contexts indicate independent services or build variants of one application.]
@@ -223,7 +225,7 @@ Return EXACTLY the following structure — field by field, in this order, with n
 **Preliminary Classification:** T[X] — [Name] (score: [0/2/3])
 **Confidence:** [HIGH/MEDIUM/LOW] — [one-line rationale]
 
-**T4 Disqualifiers:** [CLEAR / FOUND: item]
+**T4 Disqualifiers:** [CLEAR / INDICATORS FOUND — not disqualifying: item / FOUND — DISQUALIFYING: item]
 
 **Top Evidence Items:**
 1. [Signal] | [file:line or directory] | [T1/T2/T3/T4 indicator]

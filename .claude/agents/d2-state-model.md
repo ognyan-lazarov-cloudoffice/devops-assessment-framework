@@ -141,7 +141,9 @@ Structure:
 **Date:** [date]
 
 ## S4 Disqualifier Check
-[CLEAR or FOUND — list each indicator checked and result]
+[CLEAR — no indicators found
+ OR INDICATORS FOUND — not disqualifying: [describe what was found and why it does not confirm S4]
+ OR FOUND — DISQUALIFYING: [describe confirmed indicator — classification IS S4]]
 
 ## Local Filesystem State
 [File write patterns: locations, frequency, purpose. Embedded DB usage. Log file configuration. Upload storage paths.]
@@ -207,7 +209,7 @@ Return EXACTLY the following structure — field by field, in this order, with n
 **Preliminary Classification:** S[X] — [Name] (score: [0/1/2/3])
 **Confidence:** [HIGH/MEDIUM/LOW] — [one-line rationale]
 
-**S4 Disqualifiers:** [CLEAR / FOUND: item]
+**S4 Disqualifiers:** [CLEAR / INDICATORS FOUND — not disqualifying: item / FOUND — DISQUALIFYING: item]
 **S3 Cap Active:** [YES — fitness capped at MEDIUM / NO]
 
 **Top Evidence Items:**

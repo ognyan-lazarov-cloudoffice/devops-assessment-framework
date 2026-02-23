@@ -49,11 +49,13 @@ Also extract from D2 report:
 
 ### Step 3 — Determine Disqualifier Status
 
-For each report, read the Preliminary Classification section and check the Score:
-- Score = 0 → disqualifier is ACTIVE (classification is T4/S4/I4/L4). Record as FOUND — DISQUALIFYING.
-- Score > 0 → disqualifier is NOT active, regardless of what the disqualifier check section says. Record as CLEAR or INDICATORS FOUND — not disqualifying.
+IMPORTANT: IGNORE the "Disqualifier Check" / "Disqualifier Status" section text in each report completely. Do NOT read that section for classification purposes. That section records what was searched — it does NOT determine the final classification and may contain errors.
 
-Do NOT use the "Disqualifier Check" section heading alone to determine active disqualifiers — that section records what was searched, not the final classification. Only the Score field determines whether a disqualifier is active.
+Use ONLY the Score field from each report's Preliminary Classification section:
+- Score = 0 → disqualifier is ACTIVE (classification is T4/S4/I4/L4). Record as FOUND — DISQUALIFYING.
+- Score > 0 → disqualifier is NOT active. Record as CLEAR or INDICATORS FOUND — not disqualifying, based on classification name.
+
+This override is absolute. Even if the Disqualifier Status section says "FOUND — DISQUALIFYING" and the Score is 2 or 3, the Score wins. The Score is the authoritative field.
 
 ### Step 4 — Extract Cross-Dimension Flags from summaries
 

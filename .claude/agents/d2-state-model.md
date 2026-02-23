@@ -61,8 +61,8 @@ grep -rn "BEGIN TRANSACTION\|ROLLBACK\|distributed.*transaction\|two.*phase.*com
 ### Step 2 — Local Filesystem State
 
 ```
-# File write operations in application code
-grep -rn "os\.Create\|os\.OpenFile\|ioutil\.WriteFile\|open.*'w'\|open.*'a'\|fs\.writeFile\|Files\.write\|FileOutputStream\|BufferedWriter" REPO --include="*.go" --include="*.py" --include="*.java" --include="*.js" --include="*.ts" 2>/dev/null | grep -v ".git" | grep -v "_test\." | head -30
+# File write operations in application code (exclude docs/ — documentation examples are not runtime state)
+grep -rn "os\.Create\|os\.OpenFile\|ioutil\.WriteFile\|open.*'w'\|open.*'a'\|fs\.writeFile\|Files\.write\|FileOutputStream\|BufferedWriter" REPO --include="*.go" --include="*.py" --include="*.java" --include="*.js" --include="*.ts" 2>/dev/null | grep -v ".git" | grep -v "_test\." | grep -v "/docs/" | head -30
 
 # Embedded databases (S3 risk)
 grep -rl "sqlite\|SQLite\|boltdb\|bbolt\|badger\|leveldb\|h2\|hsqldb\|derby\|berkeleydb" REPO --include="*.go" --include="*.py" --include="*.java" --include="*.js" --include="*.ts" --include="*.xml" --include="*.toml" --include="*.mod" 2>/dev/null | grep -v ".git" | grep -v "_test\." | head -20
@@ -103,12 +103,12 @@ grep -rn "kind: StatefulSet\|PersistentVolumeClaim\|volumeClaimTemplates\|persis
 # Session affinity / sticky sessions (S3 indicator)
 grep -rn "sessionAffinity\|sticky\|JSESSIONID\|session.*cookie\|cookie.*session\|affinity.*ClientIP" REPO --include="*.yml" --include="*.yaml" --include="*.conf" --include="*.json" 2>/dev/null | grep -v ".git" | head -20
 
-# Volume mounts in docker-compose
-grep -rn "volumes:" REPO --include="*.yml" --include="*.yaml" 2>/dev/null | grep -v ".git" | head -20
-find REPO -name "docker-compose*.yml" -o -name "docker-compose*.yaml" 2>/dev/null | grep -v ".git" | head -5
+# Volume mounts in docker-compose (exclude docs/ — documentation examples are not runtime state)
+grep -rn "volumes:" REPO --include="*.yml" --include="*.yaml" 2>/dev/null | grep -v ".git" | grep -v "/docs/" | head -20
+find REPO -name "docker-compose*.yml" -o -name "docker-compose*.yaml" 2>/dev/null | grep -v ".git" | grep -v "/docs/" | head -5
 ```
 
-Read any docker-compose files found. Note volume mount purposes — named volumes to managed services (fine), host-path mounts for data persistence (S3 risk).
+Read only docker-compose files found OUTSIDE docs/ directories. Documentation examples are not runtime state. Note volume mount purposes — named volumes to managed services (fine), host-path mounts for data persistence (S3 risk).
 
 ---
 

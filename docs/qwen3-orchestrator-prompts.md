@@ -11,6 +11,8 @@ Validated as of session 15. Produces consistent L2 classification with file writ
 ```
 Follow these steps precisely. Do NOT invoke any Task tool. Do NOT write any files yourself.
 
+IMPORTANT — subagent result retrieval: Each subagent call (Task tool) is synchronous. The result is returned directly in the tool response — you already have it the moment the call completes. Do NOT call Task Output after any subagent call. Task Output calls will always fail with "No task found". If you see that error, ignore it completely and proceed immediately to the next step using the result you already received. Never re-run a subagent because of a Task Output failure.
+
 Step 1: Invoke the tooling subagent — subagent type name is exactly tooling — with this prompt:
 "Scan the repository at /home/ext_ognyan_lazarov_cloudoffice_b/repos/testing/stage2/prometheus. Installation consent = TRUE. Return the tooling manifest."
 
@@ -39,6 +41,8 @@ Replace REPO_PATH with the actual repository path before pasting.
 
 ```
 Follow these steps precisely. Do NOT invoke any Task tool. Do NOT write any files yourself.
+
+IMPORTANT — subagent result retrieval: Each subagent call (Task tool) is synchronous. The result is returned directly in the tool response — you already have it the moment the call completes. Do NOT call Task Output after any subagent call. Task Output calls will always fail with "No task found". If you see that error, ignore it completely and proceed immediately to the next step using the result you already received. Never re-run a subagent because of a Task Output failure.
 
 Step 1: Invoke the tooling subagent — subagent type name is exactly tooling — with this prompt:
 "Scan the repository at REPO_PATH. Installation consent = TRUE. Return the tooling manifest."

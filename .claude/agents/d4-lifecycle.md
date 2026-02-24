@@ -19,7 +19,7 @@ You will be given a repository path in your task instructions. Assess ONLY that 
 | L1 | 3 | Fast startup (<30s), graceful SIGTERM, fully externalized config, distinct readiness + liveness probes |
 | L2 | 2 | Mostly compliant with fixable gaps — slow startup OR missing one probe OR partial config externalization |
 | L3 | 1 | Significant friction — long startup, no signal handling, or deeply hardcoded config. CAPS overall fitness at MEDIUM. |
-| L4 | 0 | DISQUALIFYING — requires systemd, custom init, privileged mode, host-level access, or GUI. Triggers BLOCKED. |
+| L4 | 0 | DISQUALIFYING — requires systemd; OR uses supervisord/runit/s6 to manage multiple distinct application daemons per container (container-as-VM pattern); OR requires privileged mode, host-level access, or GUI. Triggers BLOCKED. |
 
 ## Assessment Protocol
 
@@ -46,6 +46,18 @@ grep -rl "Xorg\|DISPLAY=\|xvfb\|xserver" REPO 2>/dev/null | grep -v ".git"
 grep -r "$(basename SERVICE_FILE_PATH)" REPO --include="Dockerfile*" 2>/dev/null | grep -v ".git"
 ```
 If the file is NOT referenced in any Dockerfile and lives under a path containing `contrib`, `scripts`, `packaging`, `examples`, `dist`, or `docs`, classify it as a **packaging artifact** (not an L4 disqualifier) and note it as such in the report. Only files that are actively used at container runtime (referenced in Dockerfile, startup scripts, or entrypoint) constitute a genuine L4 disqualifier.
+
+**IMPORTANT — supervisord/runit/s6 disambiguation:** If supervisord, runit, or s6 is found, do NOT stop at detecting its presence. Read the supervisor conf files to determine what it manages:
+```
+find REPO -name "supervisord.conf" -o -name "*.conf" 2>/dev/null | xargs grep -l "\[program:" 2>/dev/null | grep -v ".git" | head -5
+# For each conf file found, count [program:] sections:
+grep -c "\[program:" CONF_FILE_PATH
+```
+Classification rule:
+- Supervisord/runit/s6 managing **2 or more distinct application daemons** (e.g., postfix + dovecot + rspamd + redis in one container): **IS L4**. The container is acting as a mini-VM, not a single-purpose container. Classify L4 regardless of whether dumb-init or tini wraps supervisord as ENTRYPOINT.
+- Supervisord managing **only one [program:] entry** or used solely as a process-restart wrapper for a single service: NOT L4. Classify L2/L3 based on other evidence.
+
+dumb-init or tini as ENTRYPOINT does NOT change this assessment — evaluate what supervisord manages, not how it is invoked.
 
 ---
 

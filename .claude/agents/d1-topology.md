@@ -186,6 +186,13 @@ Structure:
 **Confidence:** HIGH / MEDIUM / LOW
 **Reasoning:** [2-4 sentences]
 
+SCORING CONSISTENCY RULE (enforce strictly before writing):
+- T1 classification MUST have Score: 3
+- T2 classification MUST have Score: 3
+- T3 classification MUST have Score: 2
+- T4 classification MUST have Score: 0
+Verify your Classification code and Score are consistent. A mismatch is an error — correct it using this table before writing the report.
+
 ## Top Evidence Items
 [3-5 highest-signal findings, each as: Signal type | Location reference | What it indicates]
 

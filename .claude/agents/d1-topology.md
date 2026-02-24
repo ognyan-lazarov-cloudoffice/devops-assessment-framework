@@ -186,7 +186,8 @@ Structure:
 **Confidence:** HIGH / MEDIUM / LOW
 **Reasoning:** [2-4 sentences]
 
-SCORING CONSISTENCY RULE (enforce strictly before writing):
+SCORING CONSISTENCY RULE (enforce strictly before writing).
+Note: a model that correctly reads the framework table above does not need this rule — the scores are already stated there. This guard was added after observing qwen3-coder assign Score:3 to a T3 classification. Review and remove if the model in use reads the framework table reliably.
 - T1 classification MUST have Score: 3
 - T2 classification MUST have Score: 3
 - T3 classification MUST have Score: 2

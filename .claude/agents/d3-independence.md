@@ -48,8 +48,7 @@ Replace REPO with the repository path provided in your task instructions.
 
 ```
 # Hardcoded localhost/IP for cross-service calls (strong I4 indicator)
-# provider/ subdirectories define config structs with overridable defaults — exclude them
-grep -rn "localhost:[0-9]\{4,5\}\|127\.0\.0\.1:[0-9]\{4,5\}" REPO --include="*.go" --include="*.py" --include="*.java" --include="*.js" --include="*.ts" 2>/dev/null | grep -v ".git" | grep -v "_test\." | grep -v "//\|#" | grep -v "/provider/" | head -20
+grep -rn "localhost:[0-9]\{4,5\}\|127\.0\.0\.1:[0-9]\{4,5\}" REPO --include="*.go" --include="*.py" --include="*.java" --include="*.js" --include="*.ts" 2>/dev/null | grep -v ".git" | grep -v "_test\." | grep -v "//\|#" | head -20
 
 **IMPORTANT — configuration default disambiguation:** If localhost/IP matches are found, read the matched file and check whether the value is:
 - A struct field default value (e.g., `DefaultAddr = "127.0.0.1:6379"` in a config struct definition) → NOT I4. These are overridable defaults.
@@ -194,7 +193,8 @@ Structure:
 
 CRITICAL: Do NOT include raw source code in the report. Reference file paths and line numbers. Describe patterns abstractly. Given the ~40-50% static ceiling for D3, unknowns section is expected to be substantial.
 
-CONSISTENCY RULE — Disqualifier Status vs Classification (enforce strictly):
+CONSISTENCY RULE — Disqualifier Status vs Classification (enforce strictly).
+Note: this is a framework invariant, not a model-specific patch — the classification and disqualifier status must agree by definition. A capable model applies this naturally; the explicit rule guards against output inconsistency regardless of model.
 - "FOUND — DISQUALIFYING" MUST pair with Classification I4 and Score 0.
 - "INDICATORS FOUND — not disqualifying" MUST pair with Classification I1, I2, or I3.
 - "CLEAR" MUST pair with Classification I1, I2, or I3 and means no indicators were found.

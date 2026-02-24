@@ -30,8 +30,15 @@ Step 4: Report back the exact correlation summary returned by the d4-lifecycle s
 
 ### Operational notes
 - Full session restart required between runs (not /clear)
-- After VM stop/start: `sudo systemctl restart ollama` then warm-up curl before starting session
-- Warm-up curl: `curl -s http://localhost:11434/v1/chat/completions -H "Content-Type: application/json" -d '{"model":"qwen3-coder:30b-a3b-q8_0","messages":[{"role":"user","content":"hi"}],"stream":false}'`
+- After VM stop/start: `sudo systemctl restart ollama` then warm-up before starting session
+- Warm-up: runner startup takes ~14 min on cold GPU — use long-timeout curl run in background:
+  ```
+  curl -s --max-time 1200 http://localhost:11434/api/generate \
+    -d '{"model":"qwen3-coder:30b-a3b-q8_0","prompt":"hi","stream":false}' \
+    2>&1 | python3 -c "import sys,json; r=json.load(sys.stdin); print('Model ready:', r.get('response','')[:40])" &
+  ```
+  Monitor: `sudo journalctl -u ollama -f --no-pager` — wait for `"llm server started"` or the curl output.
+  Do NOT use a short-timeout curl — client disconnect aborts the load and forces a full restart.
 
 ---
 

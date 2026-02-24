@@ -202,7 +202,12 @@ Single repository scope. No boundary confirmation required.
 **Preliminary Total:** [sum of four scores] / 12
 **Disqualifiers Active:** [list dimensions where Score = 0 (T4/S4/I4/L4 classification confirmed), or NONE]
 **S3 Cap Active:** [YES or NO]
-**Indicative Fitness:** [if any score=0 → BLOCKED; else if any score=1 → MEDIUM cap; else estimate HIGH/MEDIUM/LOW from total]
+**Indicative Fitness:** [write EXACTLY one of the following — no other wording:
+- BLOCKED — if ANY dimension score = 0
+- MEDIUM cap (S3 active) — if no score = 0 but any score = 1
+- HIGH — if no score = 0 or 1 and total ≥ 10
+- MEDIUM — if no score = 0 or 1 and total 7–9
+- LOW — if no score = 0 or 1 and total ≤ 6]
 
 ---
 

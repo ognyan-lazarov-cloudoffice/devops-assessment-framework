@@ -54,8 +54,13 @@ find REPO -name "*.gitlab-ci.yml" -o -name "Jenkinsfile" -o -name "*.pipeline" 2
 # Shared filesystem / IPC patterns
 grep -rn "shared_volumes\|volume.*shared\|tmpfs\|ipc: host\|volumes_from" REPO --include="*.yml" --include="*.yaml" 2>/dev/null | grep -v ".git" | head -20
 
-# Required deployment ordering in compose/manifests
-grep -rn "depends_on" REPO --include="*.yml" --include="*.yaml" 2>/dev/null | grep -v ".git" | head -30
+# Required deployment ordering in compose/manifests (exclude docs/test/example paths — not production)
+grep -rn "depends_on" REPO --include="*.yml" --include="*.yaml" 2>/dev/null | grep -v ".git" | grep -v "/docs/\|/buildscripts/\|/test\|/example\|/sample\|/upgrade" | head -30
+
+**IMPORTANT — depends_on disambiguation:**
+- `depends_on` in docs/, buildscripts/, test, example, or upgrade directories = documentation/test artifact, NOT a T4 indicator.
+- `depends_on` where a load balancer or proxy waits for its backends (e.g., nginx → app) = normal operational pattern. Kubernetes handles this via readiness probes automatically. NOT a T4 indicator.
+- T4 requires: Service A crashes on startup because Service B is absent, with no retry or graceful degradation — a hard architectural coupling that cannot be resolved by orchestration. Read the matched file before concluding T4.
 
 # K8s initContainers waiting for other services
 grep -rn "initContainers" REPO --include="*.yml" --include="*.yaml" 2>/dev/null | grep -v ".git" | head -20

@@ -9,7 +9,7 @@ Operational prompts for the qwen3 direct Ollama session. These are pasted into t
 Validated as of session 15. Produces consistent L2 classification with file written reliably.
 
 ```
-Follow these steps precisely. Do NOT invoke any Task tool. Do NOT write any files yourself.
+Follow these steps precisely. Do NOT write any files yourself. Do NOT run any bash commands or read any files between steps — your only permitted actions are invoking the specified subagents via the Task tool and tracking their results.
 
 IMPORTANT — subagent result retrieval: Each subagent call (Task tool) is synchronous. The result is returned directly in the tool response — you already have it the moment the call completes. Do NOT call Task Output after any subagent call. Task Output calls will always fail with "No task found". If you see that error, ignore it completely and proceed immediately to the next step using the result you already received. Never re-run a subagent because of a Task Output failure.
 
@@ -47,7 +47,7 @@ Step 4: Report back the exact correlation summary returned by the d4-lifecycle s
 Replace REPO_PATH with the actual repository path before pasting.
 
 ```
-Follow these steps precisely. Do NOT invoke any Task tool. Do NOT write any files yourself.
+Follow these steps precisely. Do NOT write any files yourself. Do NOT run any bash commands or read any files between steps — your only permitted actions are invoking the specified subagents via the Task tool and tracking their results.
 
 IMPORTANT — subagent result retrieval: Each subagent call (Task tool) is synchronous. The result is returned directly in the tool response — you already have it the moment the call completes. Do NOT call Task Output after any subagent call. Task Output calls will always fail with "No task found". If you see that error, ignore it completely and proceed immediately to the next step using the result you already received. Never re-run a subagent because of a Task Output failure.
 

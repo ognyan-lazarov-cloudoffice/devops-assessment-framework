@@ -52,9 +52,10 @@ Replace REPO with the repository path provided in your task instructions.
 grep -rn "localhost:[0-9]\{4,5\}\|127\.0\.0\.1:[0-9]\{4,5\}" REPO --include="*.go" --include="*.py" --include="*.java" --include="*.js" --include="*.ts" 2>/dev/null | grep -v ".git" | grep -v "_test\." | grep -v "//\|#" | grep -v "/provider/" | head -20
 
 **IMPORTANT — configuration default disambiguation:** If localhost/IP matches are found, read the matched file and check whether the value is:
-- A struct field default value (e.g., in a config struct definition or `DefaultAddr = "127.0.0.1:6379"`) → NOT an I4 indicator. These are overridable defaults.
-- An actual connection call or dial target with no env-var/flag override path → IS an I4 indicator.
-Only hardcoded addresses used at connection time without an override mechanism constitute a genuine I4 disqualifier.
+- A struct field default value (e.g., `DefaultAddr = "127.0.0.1:6379"` in a config struct definition) → NOT I4. These are overridable defaults.
+- A fallback default where a config or env source is checked first (e.g., `cfg.url or "http://localhost:8080"`, `os.getenv("X", "http://localhost:...")`, `config.Load().Addr || "127.0.0.1:6379"`) → NOT I4. The config/env source IS the override mechanism — the fallback is only reached when nothing is configured. This applies even when the fallback appears inside a connection call.
+- An unconditional hardcoded address at connection time with no config/env lookup before it (e.g., `client.Dial("localhost:6379")` with no preceding config load, `base_url = "http://localhost:8080"` as a plain assignment never overridden) → IS I4.
+Only hardcoded addresses that cannot be overridden by any configuration path constitute a genuine I4 disqualifier.
 
 # Shared filesystem / shared memory between processes
 grep -rn "shm_open\|mmap\|shared_memory\|/dev/shm\|ipc_key\|shmget" REPO --include="*.go" --include="*.py" --include="*.java" --include="*.c" --include="*.cpp" 2>/dev/null | grep -v ".git" | grep -v "_test\." | head -20

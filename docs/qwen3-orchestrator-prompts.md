@@ -14,14 +14,14 @@ Follow these steps precisely. Do NOT write any files yourself. Do NOT run any ba
 IMPORTANT — subagent result retrieval: Each subagent call (Task tool) is synchronous. The result is returned directly in the tool response — you already have it the moment the call completes. Do NOT call Task Output after any subagent call. Task Output calls will always fail with "No task found". If you see that error, ignore it completely and proceed immediately to the next step using the result you already received. Never re-run a subagent because of a Task Output failure.
 
 Step 1: Invoke the tooling subagent — subagent type name is exactly tooling — with this prompt:
-"Scan the repository at /home/ext_ognyan_lazarov_cloudoffice_b/repos/testing/stage2/prometheus. Installation consent = TRUE. Return the tooling manifest."
+"Scan the repository at /home/ext_ognyan_lazarov_cloudoffice_b/repos/testing/prometheus. Installation consent = TRUE. Return the tooling manifest."
 
 Step 2: The tooling subagent returns a manifest table. Read that table directly — do not do any additional investigation of your own. Find every row where the Status column contains the word INSTALLED. Write a single line in this exact format:
 "Installed tools: <name>, <name>, ..." — or "Installed tools: none" if no rows have INSTALLED status.
 
 Step 3: Invoke the d4-lifecycle subagent — subagent type name is exactly d4-lifecycle — with a prompt constructed as follows. Replace [LINE] with the line you produced in Step 2:
 
-"Assess D4 Lifecycle Compliance for the repository at /home/ext_ognyan_lazarov_cloudoffice_b/repos/testing/stage2/prometheus.
+"Assess D4 Lifecycle Compliance for the repository at /home/ext_ognyan_lazarov_cloudoffice_b/repos/testing/prometheus.
 [LINE]
 For Step 6b: run each tool listed as installed above against the repository. Write the evidence report to output/d4-evidence-report.md and return the correlation summary."
 
@@ -113,3 +113,19 @@ Step 12: Report back the single confirmation line returned by the evidence-assem
 - Subagents run sequentially: each step must complete before the next begins
 - If a subagent fails to write its evidence report, do not proceed — report the failure at that step
 - Stage 2 single-dimension prompt remains valid for D4-only runs
+
+## Parallelism — Design Decision (recorded session 18)
+
+**Parallelism is not achievable in Phase 1 under the local-model privacy constraint.**
+
+The reason for using qwen3/ollama is that the codebase must never reach Anthropic's API.
+Phase 1 static analysis is entirely local: codebase → qwen3 subagents → evidence-package.md.
+Only the derived evidence-package.md (structured findings, no raw code) crosses the privacy boundary to CC for Phase 2.
+
+For parallelism to work, an orchestrator capable of emitting simultaneous tool calls is required.
+CC can do this natively; qwen3 cannot (it always invokes Tool calls sequentially regardless of instruction text).
+Using CC as Phase 1 orchestrator was tested and confirmed technically functional — but violates the privacy constraint
+because correlation summaries (containing code pattern descriptions and file references) would pass through Anthropic's API.
+
+**Conclusion:** Sequential qwen3 orchestration is the only valid Phase 1 path.
+The parallel variant was explored and ruled out. Do not revisit unless the privacy constraint changes.

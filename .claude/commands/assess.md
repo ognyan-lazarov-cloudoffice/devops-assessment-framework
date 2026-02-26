@@ -55,33 +55,19 @@ Execute Phase 1 via sequential subagent invocations. Replace REPO_PATH with the 
 
 **If multi-repo:** After evidence assembly, present the repository boundary map and ask the human to confirm repo boundaries and service ownership.
 
-Announce Phase 1 complete.
+**SESSION BOUNDARY — STOP HERE.**
 
-### Phase 1 Synthesis (T1.8)
+Announce Phase 1 complete:
 
-Read `output/evidence-package.md`. Perform CC-level cross-dimension analysis to produce `output/synthesis-notes.md`.
+> "Phase 1 evidence gathering complete. `output/evidence-package.md` written.
+>
+> This is the Phase 1 session boundary. This session (local model) ends here.
+> Switch to the CC session (Anthropic API) and run `/assess-resume` to proceed with
+> T1.8 synthesis and Phase 2 dialogue."
 
-1. **Evidence Quality Assessment** — Note tooling gaps, low-confidence findings, surface-scan limitations that reduce assessment reliability. Flag any dimension where evidence is insufficient to support a preliminary hypothesis.
+Do not execute T1.8 or any further steps in this session.
 
-2. **Cross-Dimension Tension Detection** — Check all four dimension summaries against each other. Surface tensions that span dimensions — these are frequently missed by subagents operating in isolation (e.g. a D2 state mechanism that invalidates a D4 lifecycle assumption). Check against `reference/tensions/cross-dimension-tensions.md` for known tension patterns.
-
-3. **Scoring Hypotheses** — For the 2-3 most plausible operator configuration scenarios, estimate likely dimension scores and total fitness range. State what classification each scenario produces and which scenario the current evidence favors.
-
-4. **Dialogue Agenda Sharpening** — Review the qwen3-proposed question selections from the evidence package. Replace with the 3-4 discriminating questions that most directly resolve the identified tensions and scoring uncertainties. A question that simultaneously resolves two tensions is worth more than two single-tension questions.
-
-5. **Per-Dimension Starting Positions** — For each dimension, record: CC's Phase 2 entry hypothesis (which may differ from qwen3's), key open questions, and any classification-changing evidence that dialogue must resolve.
-
-Write `output/synthesis-notes.md`.
-
-**Validation pause:** Present a concise summary of synthesis-notes.md to the human:
-- Evidence quality issues (if any)
-- Cross-dimension tensions found (count and severity)
-- Whether CC's scoring hypothesis differs from qwen3's preliminary classification
-- Revised dialogue agenda (final question list)
-
-Ask: "Review complete. Proceed to Phase 2 dialogue, or do you want to adjust the agenda first?"
-
-Do not proceed to Phase 2 until the human confirms.
+---
 
 ### Phase 2: Structured Assessment Dialogue
 

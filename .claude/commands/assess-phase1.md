@@ -22,6 +22,7 @@ IMPORTANT — subagent result retrieval: Each subagent call (Task tool) is synch
 **Step 2:** From the returned manifest table, find every row where Status contains INSTALLED. Produce exactly one line:
 `Installed tools: <name>, <name>, ...` — or `Installed tools: none` if no rows have INSTALLED status.
 Label this line TOOLS_LINE.
+Do NOT verify any tool installation yourself. Do NOT run any commands to check tool availability. The tooling subagent's report is the authoritative source — use it exactly as returned and proceed immediately to Step 3.
 
 **Step 3:** Invoke the `d1-topology` subagent with this exact prompt (replace REPO_PATH with $ARGUMENTS, replace [TOOLS_LINE] with the line from Step 2):
 

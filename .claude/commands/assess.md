@@ -32,6 +32,12 @@ Load `reference/protocol/tooling-provisioning.md` and execute:
 
 Load `reference/protocol/phase1-evidence-gathering.md` as the evidence specification reference (describes what each subagent gathers).
 
+**Execution rules — strictly observed during Phase 1:**
+- Do NOT write any files yourself.
+- Do NOT run any Bash commands or read any files between steps.
+- Your ONLY permitted actions during Phase 1 are invoking the specified subagents via the Task tool and tracking their results.
+- Each Task tool call is synchronous — the result is returned directly in the tool response. Do NOT call TaskOutput after any subagent call. TaskOutput calls will always fail with "No task found". If you see that error, ignore it completely and proceed immediately to the next step using the result you already received. Never re-run a subagent because of a TaskOutput failure.
+
 Execute Phase 1 via sequential subagent invocations. Replace REPO_PATH with the actual repository path throughout.
 
 **Step 1 — Tooling Provisioning:** Invoke the `tooling` subagent:

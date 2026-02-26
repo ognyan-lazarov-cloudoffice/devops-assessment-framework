@@ -21,7 +21,10 @@ T0 Pre-Flight
 T0.5 Tooling Readiness ───────────────── [AUTONOMOUS → DIALOGUE (consent)]
  │
  ▼
-T1 Repository Analysis ─────────────── [AUTONOMOUS, includes adaptive tool install]
+T1 Repository Analysis ─────────────── [AUTONOMOUS, qwen3 subagents]
+ │
+ ▼
+T1.8 Phase 1 Synthesis ─────────────── [AUTONOMOUS → DIALOGUE (validation pause)]
  │
  ▼
 T1.5 Repo Boundary Confirmation ───── [DIALOGUE, multi-repo only]
@@ -106,21 +109,34 @@ T10 Completion ─────────────────────�
 
 | Field | Value |
 |---|---|
-| Mode | Autonomous |
+| Mode | Autonomous (qwen3 subagents, CC orchestrates) |
 | Blocked by | T0.5 |
 | Input | Validated repository path(s) |
-| Action | Inventory repos, adaptively provision tools (check availability → install if consented → log status), run static analysis with available tools, assemble evidence with tooling manifest, generate dialogue agenda |
+| Action | Delegate to qwen3 subagents sequentially: tooling → d1-topology → d2-state-model → d3-independence → d4-lifecycle → evidence-assembler. CC receives only correlation summaries (no raw code). evidence-assembler writes evidence-package.md. |
 | Completion marker | `output/evidence-package.md` exists |
 | Gate | None — always produces output even if tooling is limited |
-| Reference files | `protocol/phase1-evidence-gathering.md`, `templates/evidence-package.md` |
-| Estimated duration | 15-30 min |
+| Reference files | `protocol/phase1-evidence-gathering.md` (evidence spec), `docs/qwen3-orchestrator-prompts.md` (invocation reference) |
+| Estimated duration | 20-30 min |
+
+### T1.8: Phase 1 Synthesis
+
+| Field | Value |
+|---|---|
+| Mode | Autonomous → Dialogue (validation pause) |
+| Blocked by | T1 |
+| Input | `output/evidence-package.md` |
+| Action | CC reads evidence-package.md and performs cross-dimension analysis: evidence quality assessment, cross-dim tension detection (including tensions missed by isolated subagents), scoring hypotheses across plausible operator configs, dialogue agenda sharpening (reduce to 3-4 discriminating questions), per-dimension Phase 2 starting positions. Writes output/synthesis-notes.md. Presents summary to human with validation pause before Phase 2 begins. |
+| Completion marker | `output/synthesis-notes.md` exists |
+| Gate | Human must confirm readiness before T1.5/T2 begins |
+| Reference files | `tensions/cross-dimension-tensions.md` |
+| Estimated duration | 5-10 min |
 
 ### T1.5: Repo Boundary Confirmation
 
 | Field | Value |
 |---|---|
 | Mode | Dialogue |
-| Blocked by | T1 |
+| Blocked by | T1.8 |
 | Condition | **Multi-repo only.** Skip if single repo. |
 | Input | Evidence package with repo boundary map |
 | Action | Present boundary map, human confirms service ownership and repo relationships |
@@ -133,7 +149,7 @@ T10 Completion ─────────────────────�
 | Field | Value |
 |---|---|
 | Mode | Dialogue |
-| Blocked by | T1 (single-repo) or T1.5 (multi-repo) |
+| Blocked by | T1.8 (single-repo) or T1.5 (multi-repo) |
 | Input | Evidence package D1 section |
 | Action | Present evidence → propose classification → gap resolution (max 3 Qs) → dialectical challenges → lock |
 | Completion marker | `output/dimension-d1.md` exists |
@@ -327,7 +343,8 @@ For `/assess-resume` and general state awareness:
 | Output File | Task Completed | Next Task |
 |---|---|---|
 | _(nothing)_ | None | T0 (or no assessment started) |
-| `output/evidence-package.md` | T1 | T1.5 (multi-repo) or T2 |
+| `output/evidence-package.md` | T1 | T1.8 |
+| `output/synthesis-notes.md` | T1.8 | T1.5 (multi-repo) or T2 |
 | `output/dimension-d1.md` | T2 | T3 |
 | `output/dimension-d2.md` | T3 | T4 |
 | `output/dimension-d3.md` | T4 | T5 |
@@ -352,10 +369,10 @@ If a gate is active, `/assess-resume` should announce the gate state and wait fo
 | Phase | Tasks | Mode | Duration |
 |---|---|---|---|
 | Pre-flight | T0 | Autonomous | 1 min |
-| Phase 1 | T1, T1.5 | Autonomous + brief dialogue | 15-30 min |
+| Phase 1 | T0.5, T1, T1.8, T1.5 | Autonomous + validation pause | 30-45 min |
 | Phase 2 | T2-T5, T5.5, T6 | Dialogue | 40-60 min |
 | Phase 3 | T7a-T7c, T7.5, T8a-T8c, T9, T10 | Dialogue | 35-65 min |
-| **Total** | | | **~1.5-2.5 hours** |
+| **Total** | | | **~1.75-2.75 hours** |
 
 ---
 

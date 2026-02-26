@@ -1,6 +1,10 @@
 # qwen3 Orchestrator Prompts
 
-Operational prompts for the qwen3 direct Ollama session. These are pasted into the qwen3 Claude Code session to drive subagent invocations.
+> **Primary path:** `/assess REPO_PATH` in a CC session now handles full Phase 1 orchestration automatically (CC invokes qwen3 subagents sequentially, receives correlation summaries, assembles evidence-package.md, then performs T1.8 synthesis). No manual pasting required.
+>
+> **When to use this document:** (a) Diagnosing subagent failures — the exact prompt format used by `/assess` is documented here; (b) Running a single-dimension scan in isolation (Stage 2 prompt); (c) Fallback if CC-orchestrated `/assess` fails partway and you need to re-run Phase 1 manually from a qwen3 CC session.
+
+Prompts for the qwen3 direct Ollama session. Replace REPO_PATH with the actual path before pasting.
 
 ---
 

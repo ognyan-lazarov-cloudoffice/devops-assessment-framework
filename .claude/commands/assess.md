@@ -26,20 +26,62 @@ Load `reference/protocol/tooling-provisioning.md` and execute:
 3. **Present applicable tools list** to the human. Request blanket consent to install any that are missing during Phase 1.
 4. **Record consent decision**: full consent, decline (with degradation warning and option to reconsider), or partial (per-tool).
 
-### Phase 1: Autonomous Evidence Gathering
+### Phase 1: Autonomous Evidence Gathering (qwen3-Delegated)
 
-Load `reference/protocol/phase1-evidence-gathering.md` and execute:
+**Privacy constraint:** Repository code must not reach Anthropic's API. Phase 1 static analysis is delegated to local qwen3 subagents via the Task tool. CC acts as orchestrator only — it invokes subagents, receives correlation summaries (structured abstractions, no raw code), and assembles them into the evidence package. CC does NOT read repository files directly during Phase 1.
 
-1. **Repository Inventory** — For each repo: language detection, build system, dependency manifest, Dockerfile presence, CI/CD configuration, K8s manifests, docker-compose files.
-2. **Adaptive Tool Provisioning** — For each applicable tool: check if installed (run verification command). If not installed and consent was given, install silently. If installation fails, log failure and continue. Record tooling manifest in evidence package.
-3. **Per-Repo Static Scan** — Run all available/installed tools. Record all findings.
-4. **Cross-Repo Correlation** (multi-repo only) — Detect shared dependencies, cross-repo imports, shared CI pipelines, deployment coupling signals.
-5. **Evidence Assembly** — Load `reference/templates/evidence-package.md`. Populate the evidence package (including tooling manifest). Write to `output/evidence-package.md`.
-6. **Dialogue Agenda Generation** — For each dimension (D1-D4), identify: what static analysis determined with confidence, what remains ambiguous, what specific questions from the question bank need to be asked.
+Load `reference/protocol/phase1-evidence-gathering.md` as the evidence specification reference (describes what each subagent gathers).
 
-**If multi-repo:** Before proceeding to Phase 2, present the repository boundary map and ask the human to confirm repo boundaries and service ownership.
+Execute Phase 1 via sequential subagent invocations. Replace REPO_PATH with the actual repository path throughout.
 
-Announce Phase 1 completion and transition to Phase 2.
+**Step 1 — Tooling Provisioning:** Invoke the `tooling` subagent:
+- Prompt: `"Scan the repository at REPO_PATH. Installation consent = TRUE. Return the tooling manifest."`
+- From the returned manifest table, find every row where Status contains INSTALLED. Produce exactly one line:
+  `"Installed tools: <name>, <name>, ..."` or `"Installed tools: none"`. Label this TOOLS_LINE.
+
+**Step 2 — D1:** Invoke the `d1-topology` subagent:
+- Prompt: `"Assess D1 Deployment Unit Topology for the repository at REPO_PATH.\n[TOOLS_LINE]\nFor Step 6b: run each tool listed as installed above against the repository. Write the evidence report to output/d1-evidence-report.md and return the correlation summary."`
+- Extract and retain the `## D1 Correlation Summary` block verbatim. Label D1_SUMMARY.
+
+**Step 3 — D2:** Invoke the `d2-state-model` subagent with the same pattern. Output to `output/d2-evidence-report.md`. Label D2_SUMMARY.
+
+**Step 4 — D3:** Invoke the `d3-independence` subagent with the same pattern. Output to `output/d3-evidence-report.md`. Label D3_SUMMARY.
+
+**Step 5 — D4:** Invoke the `d4-lifecycle` subagent with the same pattern. Output to `output/d4-evidence-report.md`. Label D4_SUMMARY.
+
+**Step 6 — Evidence Assembly:** Invoke the `evidence-assembler` subagent:
+- Prompt: `"Assemble the Evidence Package for the repository at REPO_PATH.\n[TOOLS_LINE]\nD1 Summary:\n[D1_SUMMARY]\nD2 Summary:\n[D2_SUMMARY]\nD3 Summary:\n[D3_SUMMARY]\nD4 Summary:\n[D4_SUMMARY]\nRead the four evidence reports from output/ and write output/evidence-package.md."`
+- Verify `output/evidence-package.md` exists before proceeding.
+
+**If multi-repo:** After evidence assembly, present the repository boundary map and ask the human to confirm repo boundaries and service ownership.
+
+Announce Phase 1 complete.
+
+### Phase 1 Synthesis (T1.8)
+
+Read `output/evidence-package.md`. Perform CC-level cross-dimension analysis to produce `output/synthesis-notes.md`.
+
+1. **Evidence Quality Assessment** — Note tooling gaps, low-confidence findings, surface-scan limitations that reduce assessment reliability. Flag any dimension where evidence is insufficient to support a preliminary hypothesis.
+
+2. **Cross-Dimension Tension Detection** — Check all four dimension summaries against each other. Surface tensions that span dimensions — these are frequently missed by subagents operating in isolation (e.g. a D2 state mechanism that invalidates a D4 lifecycle assumption). Check against `reference/tensions/cross-dimension-tensions.md` for known tension patterns.
+
+3. **Scoring Hypotheses** — For the 2-3 most plausible operator configuration scenarios, estimate likely dimension scores and total fitness range. State what classification each scenario produces and which scenario the current evidence favors.
+
+4. **Dialogue Agenda Sharpening** — Review the qwen3-proposed question selections from the evidence package. Replace with the 3-4 discriminating questions that most directly resolve the identified tensions and scoring uncertainties. A question that simultaneously resolves two tensions is worth more than two single-tension questions.
+
+5. **Per-Dimension Starting Positions** — For each dimension, record: CC's Phase 2 entry hypothesis (which may differ from qwen3's), key open questions, and any classification-changing evidence that dialogue must resolve.
+
+Write `output/synthesis-notes.md`.
+
+**Validation pause:** Present a concise summary of synthesis-notes.md to the human:
+- Evidence quality issues (if any)
+- Cross-dimension tensions found (count and severity)
+- Whether CC's scoring hypothesis differs from qwen3's preliminary classification
+- Revised dialogue agenda (final question list)
+
+Ask: "Review complete. Proceed to Phase 2 dialogue, or do you want to adjust the agenda first?"
+
+Do not proceed to Phase 2 until the human confirms.
 
 ### Phase 2: Structured Assessment Dialogue
 

@@ -2,9 +2,11 @@
 
 ## Purpose
 
-Autonomous repository scanning and evidence assembly. Produces the Dialogue Agenda for Phase 2. No human interaction required during this phase.
+Autonomous repository scanning and evidence assembly. Produces the evidence package consumed by Phase 1 Synthesis (T1.8) and then Phase 2 dialogue.
 
-**Time budget:** 15-30 minutes autonomous execution.
+**Execution model:** This protocol is implemented by local qwen3 dimension subagents (`d1-topology`, `d2-state-model`, `d3-independence`, `d4-lifecycle`) and the `evidence-assembler` subagent. CC does NOT execute this protocol directly — it delegates to these subagents via the Task tool and receives only correlation summaries (structured abstractions, no raw code). This document is the evidence specification that each subagent follows.
+
+**Time budget:** 20-30 minutes (sequential subagent execution).
 
 ---
 
@@ -186,7 +188,7 @@ Target: 70-90 minutes for complete Phase 2
 
 ## Phase 1 Output: Evidence Package
 
-The complete Evidence Package is handed to Phase 2. It contains:
+The complete Evidence Package is written by the `evidence-assembler` subagent to `output/evidence-package.md`. It contains:
 
 1. Repository Inventory (Task 1)
 2. Tooling Manifest (tool applicability, status, coverage impact)
@@ -194,7 +196,7 @@ The complete Evidence Package is handed to Phase 2. It contains:
 4. Per-dimension Evidence Summaries (4 documents)
 5. Dialogue Agenda
 
-**The Evidence Package is the ONLY input to Phase 2.** Phase 2 does not re-scan repositories.
+**Downstream:** The Evidence Package is read by CC during T1.8 (Phase 1 Synthesis) to produce `output/synthesis-notes.md`. T1.8 synthesis-notes.md is the direct input to Phase 2 dialogue — not the raw evidence package. Phase 2 does not re-scan repositories.
 
 ---
 
